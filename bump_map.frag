@@ -20,7 +20,6 @@ void main() {
     vec4 diffuseLight = gl_LightSource[0].diffuse;
 
     // compute specular lighting
-//    vec4 specularMaterial = vec4(1.0);
     vec4 specularMaterial = texture2D(specularTexture, gl_TexCoord[0].st);
     vec4 specularLight = gl_LightSource[0].specular;
     float shininess = 0.1;
@@ -30,7 +29,6 @@ void main() {
 
     vec4 final_effect = diffuseMaterial * diffuseLight * lamberFactor;
     final_effect += specularMaterial * specularLight * shininess;
-//    final_effect += ambientLight;
 
     // Apply alpha by distance
     float alpha_distance = sqrt(pos.z * pos.z + pos.x * pos.x + pos.y * pos.y);
@@ -40,9 +38,4 @@ void main() {
     alpha_distance = (max_dist - alpha_distance) / (max_dist - min_dist);
 
     gl_FragColor = vec4(final_effect.xyz, alpha_distance);
-
-//    gl_FragColor = diffuseMaterial * diffuseLight * lamberFactor;
-//    gl_FragColor += specularMaterial * specularLight * shininess;
-//    gl_FragColor += ambientLight;
-
 }
