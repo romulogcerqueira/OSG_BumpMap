@@ -3,15 +3,11 @@
 #include <osg/MatrixTransform>
 #include <osg/Node>
 #include <osg/StateSet>
-#include <osg/TexMat>
-#include <osg/TexEnv>
 #include <osg/Texture2D>
-#include <osg/ShapeDrawable>
 #include <osg/Program>
 #include <osg/Shader>
+#include <osg/ShapeDrawable>
 #include <osg/Uniform>
-
-#include <osgFX/BumpMapping>
 
 #include <osgDB/ReadFile>
 #include <osgDB/WriteFile>
@@ -19,16 +15,14 @@
 
 #include <osgViewer/Viewer>
 
-#include <osgUtil/Optimizer>
-
 #include <iostream>
 #include <string>
 #include <stdexcept>
 #include <vector>
 
-const int TEXTURE_UNIT_SHADER_DIFFUSE = 0;
-const int TEXTURE_UNIT_SHADER_NORMAL = 1;
-const int TEXTURE_UNIT_SHADER_SPECULAR = 2;
+const int TEXTURE_UNIT_DIFFUSE = 0;
+const int TEXTURE_UNIT_NORMAL = 1;
+const int TEXTURE_UNIT_SPECULAR = 2;
 
 osg::StateSet* createShaderBumpMap() {
 
@@ -48,17 +42,16 @@ osg::StateSet* createShaderBumpMap() {
     bumpMapProgramObject->addShader(bumpVertexObject);
     bumpMapProgramObject->addShader(bumpFragmentObject);
 
-    temp_state->addUniform(new osg::Uniform("diffuseTexture", TEXTURE_UNIT_SHADER_DIFFUSE));
-    temp_state->addUniform(new osg::Uniform("normalTexture", TEXTURE_UNIT_SHADER_NORMAL));
-    temp_state->addUniform(new osg::Uniform("specularTexture", TEXTURE_UNIT_SHADER_SPECULAR));
+    temp_state->addUniform(new osg::Uniform("diffuseTexture", TEXTURE_UNIT_DIFFUSE));
+    temp_state->addUniform(new osg::Uniform("normalTexture", TEXTURE_UNIT_NORMAL));
+    temp_state->addUniform(new osg::Uniform("specularTexture", TEXTURE_UNIT_SPECULAR));
     temp_state->setAttributeAndModes(bumpMapProgramObject, osg::StateAttribute::ON);
     temp_state->setDataVariance(osg::Object::STATIC);
 
     return temp_state;
 }
 
-osg::ref_ptr<osg::StateSet> insertBumpMapTexture(osg::Image *color_image, osg::Image *normal_image, osg::Image *specular_image,
-        const int texture_unit_diffuse, const int texture_unit_normal, const int texture_unit_specular) {
+osg::ref_ptr<osg::StateSet> insertBumpMapTexture(osg::Image *color_image, osg::Image *normal_image, osg::Image *specular_image) {
 
     if (!normal_image) {
         std::cout << "NORMAL IMAGE FAIL" << std::endl;
@@ -78,8 +71,8 @@ osg::ref_ptr<osg::StateSet> insertBumpMapTexture(osg::Image *color_image, osg::I
     osg::StateSet* bumpState = new osg::StateSet();
 
     // Set textures
-    osg::Texture2D *normal = new osg::Texture2D();
     osg::Texture2D *color = new osg::Texture2D();
+    osg::Texture2D *normal = new osg::Texture2D();
     osg::Texture2D *specular = new osg::Texture2D();
 
     color->setImage(color_image);
@@ -109,9 +102,10 @@ osg::ref_ptr<osg::StateSet> insertBumpMapTexture(osg::Image *color_image, osg::I
     specular->setResizeNonPowerOfTwoHint(false);
     specular->setMaxAnisotropy(8.0f);
 
-    bumpState->setTextureAttributeAndModes(texture_unit_diffuse, color, osg::StateAttribute::ON);
-    bumpState->setTextureAttributeAndModes(texture_unit_normal, normal, osg::StateAttribute::ON);
-    bumpState->setTextureAttributeAndModes(texture_unit_specular, specular, osg::StateAttribute::ON);
+    bumpState->setTextureAttributeAndModes(TEXTURE_UNIT_DIFFUSE, color, osg::StateAttribute::ON);
+    bumpState->setTextureAttributeAndModes(TEXTURE_UNIT_NORMAL, normal, osg::StateAttribute::ON);
+    bumpState->setTextureAttributeAndModes(TEXTURE_UNIT_SPECULAR, specular, osg::StateAttribute::ON);
+
 
     return bumpState;
 }
@@ -160,21 +154,18 @@ void selectTexture(int texture, std::string *normal_path, std::string *difuse_pa
     (*normal_path) = path + texture_type + "_n.jpg";
     (*difuse_path) = path + texture_type + "_d.jpg";
     (*specular_path) = path + texture_type + "_s.jpg";
-
 }
 
 void addGeodeTexture(osg::Group* group) {
 
     std::string normal_path, difuse_path, specular_path;
-    selectTexture(5, &normal_path, &difuse_path, &specular_path);
+    selectTexture(4, &normal_path, &difuse_path, &specular_path);
 
     osg::ref_ptr<osg::Image> difuse_image = osgDB::readImageFile(difuse_path);
     osg::ref_ptr<osg::Image> normal_image = osgDB::readImageFile(normal_path);
     osg::ref_ptr<osg::Image> specular_image = osgDB::readImageFile(specular_path);
     osg::ref_ptr<osg::Geode> geode(new osg::Geode);
-    geode->setStateSet(
-            insertBumpMapTexture(difuse_image, normal_image, specular_image, TEXTURE_UNIT_SHADER_DIFFUSE, TEXTURE_UNIT_SHADER_NORMAL,
-                    TEXTURE_UNIT_SHADER_SPECULAR));
+    geode->setStateSet(insertBumpMapTexture(difuse_image, normal_image, specular_image));
     group->addChild(geode);
 
     // geode without texture
@@ -186,10 +177,13 @@ int main(int argc, char **argv) {
     bumpRoot->setStateSet(createShaderBumpMap());
     addGeodeTexture(bumpRoot);
 
-    osg::ref_ptr<osg::Group> original_group = (osg::Group*) osgDB::readNodeFile("/home/romulo/workspace/OSG_BumpMap/bump_map_scene.osgb");
-    osg::Geode* geode_original = (osg::Geode*) original_group->getChild(3);
+    // osg::ref_ptr<osg::Group> original_group = (osg::Group*) osgDB::readNodeFile("/home/romulo/workspace/OSG_BumpMap/bump_map_scene.osgb");
+    // osg::Geode* geode_original = (osg::Geode*) original_group->getChild(3);
+    // bumpRoot->getChild(0)->asGeode()->addDrawable(geode_original->getDrawable(0));
 
-    bumpRoot->getChild(0)->asGeode()->addDrawable(geode_original->getDrawable(0));
+    osg::ref_ptr<osg::Geode> geode = new osg::Geode();
+    geode->addDrawable(new osg::ShapeDrawable(new osg::Sphere(osg::Vec3(0,0,-3),1)));
+    bumpRoot->getChild(0)->asGeode()->addDrawable(geode->getDrawable(0));
 
     osgViewer::Viewer bumpViewer;
     bumpViewer.setUpViewInWindow(0,0,600,600);

@@ -1,14 +1,11 @@
+#version 130
 attribute vec3 tangent;
 
-varying vec3 lightVec;
-varying vec3 halfVec;
-varying vec3 eyeVec;
-varying vec3 pos;
+out vec3 lightVec;
+out vec3 pos;
 
 void main() {
-
     gl_TexCoord[0] = gl_TextureMatrix[0] * gl_MultiTexCoord0;
-    gl_TexCoord[1] = gl_TextureMatrix[1] * gl_MultiTexCoord1;
 
     vec3 n = normalize(gl_NormalMatrix * gl_Normal);
     vec3 t = normalize(gl_NormalMatrix * tangent);
@@ -24,20 +21,7 @@ void main() {
     v.z = dot(lightDir, n);
     lightVec = normalize(v);
 
-    v.x = dot(vertexPosition, t);
-    v.y = dot(vertexPosition, b);
-    v.z = dot(vertexPosition, n);
-    eyeVec = normalize(v);
-
     vertexPosition = normalize(vertexPosition);
 
-    vec3 halfVector = normalize(vertexPosition + lightDir);
-    v.x = dot(halfVector, t);
-    v.y = dot(halfVector, b);
-    v.z = dot(halfVector, n);
-
-    halfVec = v;
-
     gl_Position = ftransform();
-
 }
